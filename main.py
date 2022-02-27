@@ -1,19 +1,29 @@
 import asyncio
 import random
+import os
 
 from telethon import TelegramClient
 from telethon import functions, types
-import questionary
 
-api_id = int(questionary.password('Api ID:').ask())
-api_hash = questionary.password('Api hash:').ask()
+from report_text import generate_text
+
+api_id = 1
+api_hash = "empty-session-hash"
+session_files_folder_relaive_path = "session_files"
+
+client_list = []
+
+print('Bot started, loading session profiles....')
+
+session_files_list= [file for file in os.listdir(session_files_folder_relaive_path) if file.endswith('.session')]
+
+for session_file in session_files_list:
+    print(f"loading session for {session_file}...")
+    client = TelegramClient(f"{session_files_folder_relaive_path}/{session_file}", api_id, api_hash)
+    client.start()
+    client_list.append(client)
 
 
-
-client = TelegramClient('session_new', api_id, api_hash)
-client.start()
-
-print('Bot started')
 
 
 async def main():
@@ -31,14 +41,15 @@ async def main():
         try:
             result = await client(functions.account.ReportPeerRequest(
                 peer=telegram_channel,
-                reason=types.InputReportReasonSpam(),
-                message='RUSSIAN PROPAGANDA AGAINST UKRAINE DURING RUSSIAN INVASION IN UKRAINE' + str(random.random())
+                reason=types.InputReportReasonOther(),
+                message=str(generate_text())
             ))
             print(result)
         except ValueError:
             print("Channel not found")
         await asyncio.sleep(10 + 2 * random.random())
-with client:
 
-    client.loop.run_until_complete(main())
+for client in client_list:
+    with client:
+        client.loop.run_until_complete(main())
 
